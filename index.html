@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,20 +5,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Blog Markdown Converter</title>
+<title>Blog Editor</title>
 
 <style>
 
     body {
         font-family: Arial, sans-serif;
-        max-width: 900px;
+        max-width: 1000px;
         margin: 40px auto;
         padding: 0 20px;
         background: #f5f5f5;
+        color: #222;
     }
 
     h1 {
         margin-bottom: 5px;
+    }
+
+    h2 {
+        margin-top: 30px;
     }
 
     .description {
@@ -31,20 +35,22 @@
         width: 100%;
         min-height: 350px;
         box-sizing: border-box;
-
         padding: 15px;
 
         font-family: monospace;
         font-size: 15px;
+        line-height: 1.5;
 
         border: 1px solid #ccc;
         border-radius: 8px;
 
         resize: vertical;
+        background: white;
     }
 
     button {
         margin-top: 12px;
+        margin-right: 6px;
 
         padding: 10px 18px;
 
@@ -68,9 +74,7 @@
         opacity: 0.8;
     }
 
-    .output {
-        margin-top: 25px;
-    }
+    /* HTML output */
 
     pre {
         background: #222;
@@ -84,6 +88,70 @@
         overflow-wrap: break-word;
 
         min-height: 150px;
+
+        font-family: monospace;
+        line-height: 1.5;
+    }
+
+    /* Preview */
+
+    #preview {
+        background: white;
+
+        border: 1px solid #ccc;
+        border-radius: 8px;
+
+        padding: 25px;
+
+        min-height: 150px;
+
+        line-height: 1.6;
+    }
+
+    /* Your blog paragraph style */
+
+    .p {
+        display: block;
+        margin-bottom: 1em;
+    }
+
+    /* Images in preview */
+
+    #preview img {
+        max-width: 100%;
+        height: auto;
+
+        display: block;
+
+        margin: 15px 0;
+    }
+
+    /* Ruby */
+
+    ruby {
+        ruby-align: center;
+    }
+
+    rt {
+        font-size: 0.6em;
+    }
+
+    /* Help box */
+
+    .help {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+
+        padding: 15px;
+
+        margin-top: 25px;
+    }
+
+    .help code {
+        background: #eee;
+        padding: 2px 5px;
+        border-radius: 4px;
     }
 
 </style>
@@ -93,8 +161,7 @@
 
 <body>
 
-
-<h1>Markdown → Blog HTML</h1>
+<h1>Blog Markdown Editor</h1>
 
 <div class="description">
     Write your blog using simple Markdown, then convert it into your custom HTML.
@@ -107,20 +174,23 @@ Example:
 
 Today was a nice day.
 
-This is **bold**, *italic*, ~~strikethrough~~,
-and __underlined__.
+I went to the **cafe** and had *coffee*.
 
-Here is [a link](https://example.com).
+This part is ~~no longer true~~.
+
+This is __underlined__.
+
+Here is a [link](https://example.com).
+
+H₂O can use subscript like H~2~O.
+
+x² can use superscript like x^2^.
 
 Japanese ruby:
-[ruby|漢字|かんじ]
+{漢字|かんじ}
 
-Water is H~2~O.
-
-Einstein's equation is E = mc^2^
-
-![My image](https://i.gyazo.com/example.png)
-"></textarea>
+And an image:
+![My image](https://example.com/image.jpg)"></textarea>
 
 
 <br>
@@ -135,23 +205,77 @@ Einstein's equation is E = mc^2^
 </button>
 
 
-<div class="output">
+<h2>HTML Output</h2>
 
-    <h2>HTML Output</h2>
+<pre id="output"></pre>
 
-    <pre id="output"></pre>
+
+<h2>Preview</h2>
+
+<div id="preview"></div>
+
+
+<div class="help">
+
+    <strong>Markdown shortcuts</strong>
+
+    <br><br>
+
+    <code>**bold**</code>
+    → <strong>bold</strong>
+
+    <br>
+
+    <code>*italic*</code>
+    → <em>italic</em>
+
+    <br>
+
+    <code>~~strike~~</code>
+    → <s>strike</s>
+
+    <br>
+
+    <code>__underline__</code>
+    → <u>underline</u>
+
+    <br>
+
+    <code>[link](URL)</code>
+    → text link
+
+    <br>
+
+    <code>^text^</code>
+    → superscript
+
+    <br>
+
+    <code>~text~</code>
+    → subscript
+
+    <br>
+
+    <code>{漢字|かんじ}</code>
+    → ruby text
+
+    <br>
+
+    <code>![alt](URL)</code>
+    → image
 
 </div>
-
 
 
 <script>
 
 
-/* =========================================================
-   ESCAPE HTML
-   Prevents accidental HTML from breaking the output.
-========================================================= */
+/*
+    Escape HTML
+
+    This prevents things typed into the editor
+    from accidentally becoming HTML.
+*/
 
 function escapeHTML(text) {
 
@@ -163,10 +287,9 @@ function escapeHTML(text) {
 }
 
 
-
-/* =========================================================
-   MARKDOWN FORMATTER
-========================================================= */
+/*
+    Convert Markdown formatting
+*/
 
 function formatMarkdown(text) {
 
@@ -180,55 +303,40 @@ function formatMarkdown(text) {
     /*
         IMAGES
 
-        ![Alt text](image URL)
-
-        becomes:
-
-        <img src="image URL" alt="Alt text">
+        ![description](URL)
     */
 
     text = text.replace(
-        /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g,
+        /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g,
 
         '<img src="$2" alt="$1">'
     );
 
 
-
     /*
         LINKS
 
-        [Link text](URL)
-
-        becomes:
-
-        <a href="URL">Link text</a>
+        [text](URL)
     */
 
     text = text.replace(
-        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
 
         '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
     );
 
 
-
     /*
         RUBY TEXT
 
-        [ruby|漢字|かんじ]
-
-        becomes:
-
-        <ruby>漢字<rt>かんじ</rt></ruby>
+        {漢字|かんじ}
     */
 
     text = text.replace(
-        /\[ruby\|([^|]+)\|([^\]]+)\]/g,
+        /\{([^|{}]+)\|([^{}]+)\}/g,
 
         '<ruby>$1<rt>$2</rt></ruby>'
     );
-
 
 
     /*
@@ -240,9 +348,8 @@ function formatMarkdown(text) {
     text = text.replace(
         /\*\*\*(.+?)\*\*\*/g,
 
-        "<strong><em>$1</em></strong>"
+        '<strong><em>$1</em></strong>'
     );
-
 
 
     /*
@@ -254,9 +361,8 @@ function formatMarkdown(text) {
     text = text.replace(
         /\*\*(.+?)\*\*/g,
 
-        "<strong>$1</strong>"
+        '<strong>$1</strong>'
     );
-
 
 
     /*
@@ -268,9 +374,8 @@ function formatMarkdown(text) {
     text = text.replace(
         /(?<!\*)\*([^*\n]+?)\*(?!\*)/g,
 
-        "<em>$1</em>"
+        '<em>$1</em>'
     );
-
 
 
     /*
@@ -282,9 +387,8 @@ function formatMarkdown(text) {
     text = text.replace(
         /~~(.+?)~~/g,
 
-        "<s>$1</s>"
+        '<s>$1</s>'
     );
-
 
 
     /*
@@ -296,43 +400,36 @@ function formatMarkdown(text) {
     text = text.replace(
         /__(.+?)__/g,
 
-        "<u>$1</u>"
+        '<u>$1</u>'
     );
-
 
 
     /*
         SUPERSCRIPT
 
-        text^2^
-
-        becomes:
-
-        text<sup>2</sup>
+        ^text^
     */
 
     text = text.replace(
         /\^([^^\n]+?)\^/g,
 
-        "<sup>$1</sup>"
+        '<sup>$1</sup>'
     );
-
 
 
     /*
         SUBSCRIPT
 
-        text~2~
+        ~text~
 
-        becomes:
-
-        text<sub>2</sub>
+        This happens AFTER strikethrough,
+        so ~~text~~ still works.
     */
 
     text = text.replace(
-        /~([^~\n]+?)~/g,
+        /(?<!~)~([^~\n]+?)~(?!~)/g,
 
-        "<sub>$1</sub>"
+        '<sub>$1</sub>'
     );
 
 
@@ -341,28 +438,30 @@ function formatMarkdown(text) {
 }
 
 
-
-/* =========================================================
-   CONVERT
-========================================================= */
+/*
+    Convert the entire blog
+*/
 
 function convert() {
 
-    const input = document.getElementById("input").value;
+    const input =
+        document.getElementById("input").value;
 
 
     /*
-        Normalize line endings.
+        Normalize line endings
     */
 
-    const text = input.replace(/\r\n/g, "\n");
+    const text =
+        input.replace(/\r\n/g, "\n");
 
 
     /*
-        Blank lines separate paragraphs.
+        Blank lines create new paragraphs
     */
 
-    const paragraphs = text.split(/\n\s*\n/);
+    const paragraphs =
+        text.split(/\n\s*\n/);
 
 
     const result = paragraphs
@@ -372,10 +471,6 @@ function convert() {
             paragraph = paragraph.trim();
 
 
-            /*
-                Ignore completely empty paragraphs.
-            */
-
             if (!paragraph) {
                 return "";
             }
@@ -383,59 +478,60 @@ function convert() {
 
             /*
                 Convert single line breaks
-                inside a paragraph to <br>.
+                inside a paragraph into <br>
             */
 
-            paragraph = paragraph.replace(
-                /\n/g,
-                "<br>\n"
-            );
+            paragraph =
+                paragraph.replace(/\n/g, "<br>\n");
 
 
             /*
-                Apply Markdown formatting.
+                Convert Markdown
             */
 
-            paragraph = formatMarkdown(paragraph);
+            paragraph =
+                formatMarkdown(paragraph);
 
 
             /*
-                Wrap every paragraph in your
-                custom .p span.
+                Wrap everything in your
+                custom paragraph span
             */
 
             return `<span class="p">${paragraph}</span>`;
 
         })
 
-
-        /*
-            Remove empty entries.
-        */
-
         .filter(Boolean)
-
-
-        /*
-            Keep paragraphs separated.
-        */
 
         .join("\n\n");
 
 
     /*
-        Show result.
+        Show HTML source
     */
 
-    document.getElementById("output").textContent = result;
+    document.getElementById("output").textContent =
+        result;
+
+
+    /*
+        Show rendered preview
+
+        IMPORTANT:
+        We use innerHTML here intentionally
+        because this is the HTML we just generated.
+    */
+
+    document.getElementById("preview").innerHTML =
+        result;
 
 }
 
 
-
-/* =========================================================
-   COPY BUTTON
-========================================================= */
+/*
+    Copy generated HTML
+*/
 
 function copyOutput() {
 
@@ -450,16 +546,19 @@ function copyOutput() {
             const button =
                 document.getElementById("copyBtn");
 
+
             const oldText =
                 button.textContent;
 
 
-            button.textContent = "Copied!";
+            button.textContent =
+                "Copied!";
 
 
             setTimeout(() => {
 
-                button.textContent = oldText;
+                button.textContent =
+                    oldText;
 
             }, 1500);
 
@@ -468,9 +567,25 @@ function copyOutput() {
 }
 
 
-</script>
+/*
+    Live preview while typing
 
+    This means you don't even have to
+    press Convert every time.
+*/
+
+document
+    .getElementById("input")
+    .addEventListener("input", convert);
+
+
+/*
+    Run once when the page opens
+*/
+
+convert();
+
+</script>
 
 </body>
 </html>
-```
