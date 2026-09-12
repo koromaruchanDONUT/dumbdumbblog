@@ -1,12 +1,15 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Blog Markdown Converter</title>
 
 <style>
+
     body {
         font-family: Arial, sans-serif;
         max-width: 900px;
@@ -26,21 +29,28 @@
 
     textarea {
         width: 100%;
-        min-height: 300px;
+        min-height: 350px;
         box-sizing: border-box;
+
         padding: 15px;
+
         font-family: monospace;
         font-size: 15px;
+
         border: 1px solid #ccc;
         border-radius: 8px;
+
         resize: vertical;
     }
 
     button {
         margin-top: 12px;
+
         padding: 10px 18px;
+
         border: none;
         border-radius: 6px;
+
         cursor: pointer;
         font-size: 15px;
     }
@@ -65,22 +75,31 @@
     pre {
         background: #222;
         color: #eee;
+
         padding: 15px;
+
         border-radius: 8px;
+
         white-space: pre-wrap;
         overflow-wrap: break-word;
+
         min-height: 150px;
     }
+
 </style>
+
 </head>
 
+
 <body>
+
 
 <h1>Markdown → Blog HTML</h1>
 
 <div class="description">
-    Write your blog using basic Markdown, then convert it into your custom HTML.
+    Write your blog using simple Markdown, then convert it into your custom HTML.
 </div>
+
 
 <textarea id="input" placeholder="Write your blog here...
 
@@ -89,137 +108,369 @@ Example:
 Today was a nice day.
 
 This is **bold**, *italic*, ~~strikethrough~~,
-__underlined__, and ||a spoiler||."></textarea>
+and __underlined__.
+
+Here is [a link](https://example.com).
+
+Japanese ruby:
+[ruby|漢字|かんじ]
+
+Water is H~2~O.
+
+Einstein's equation is E = mc^2^
+
+![My image](https://i.gyazo.com/example.png)
+"></textarea>
+
 
 <br>
 
-<button id="convertBtn" onclick="convert()">Convert</button>
-<button id="copyBtn" onclick="copyOutput()">Copy HTML</button>
+
+<button id="convertBtn" onclick="convert()">
+    Convert
+</button>
+
+<button id="copyBtn" onclick="copyOutput()">
+    Copy HTML
+</button>
+
 
 <div class="output">
+
     <h2>HTML Output</h2>
+
     <pre id="output"></pre>
+
 </div>
+
 
 
 <script>
 
+
+/* =========================================================
+   ESCAPE HTML
+   Prevents accidental HTML from breaking the output.
+========================================================= */
+
 function escapeHTML(text) {
+
     return text
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
+
 }
 
+
+
+/* =========================================================
+   MARKDOWN FORMATTER
+========================================================= */
 
 function formatMarkdown(text) {
 
-    // Escape HTML first
-    text = escapeHTML(text);
-
     /*
-        IMPORTANT:
-        More complicated formatting is handled first.
-        This allows formatting to be nested.
+        Escape HTML first.
     */
 
-    // Bold + Italic
+    text = escapeHTML(text);
+
+
+    /*
+        IMAGES
+
+        ![Alt text](image URL)
+
+        becomes:
+
+        <img src="image URL" alt="Alt text">
+    */
+
+    text = text.replace(
+        /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g,
+
+        '<img src="$2" alt="$1">'
+    );
+
+
+
+    /*
+        LINKS
+
+        [Link text](URL)
+
+        becomes:
+
+        <a href="URL">Link text</a>
+    */
+
+    text = text.replace(
+        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+
+        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+    );
+
+
+
+    /*
+        RUBY TEXT
+
+        [ruby|漢字|かんじ]
+
+        becomes:
+
+        <ruby>漢字<rt>かんじ</rt></ruby>
+    */
+
+    text = text.replace(
+        /\[ruby\|([^|]+)\|([^\]]+)\]/g,
+
+        '<ruby>$1<rt>$2</rt></ruby>'
+    );
+
+
+
+    /*
+        BOLD + ITALIC
+
+        ***text***
+    */
+
     text = text.replace(
         /\*\*\*(.+?)\*\*\*/g,
+
         "<strong><em>$1</em></strong>"
     );
 
-    // Bold
+
+
+    /*
+        BOLD
+
+        **text**
+    */
+
     text = text.replace(
         /\*\*(.+?)\*\*/g,
+
         "<strong>$1</strong>"
     );
 
-    // Italic
+
+
+    /*
+        ITALIC
+
+        *text*
+    */
+
     text = text.replace(
         /(?<!\*)\*([^*\n]+?)\*(?!\*)/g,
+
         "<em>$1</em>"
     );
 
-    // Strikethrough
+
+
+    /*
+        STRIKETHROUGH
+
+        ~~text~~
+    */
+
     text = text.replace(
         /~~(.+?)~~/g,
+
         "<s>$1</s>"
     );
 
-    // Underline
+
+
+    /*
+        UNDERLINE
+
+        __text__
+    */
+
     text = text.replace(
         /__(.+?)__/g,
+
         "<u>$1</u>"
     );
 
-    // Spoiler
+
+
+    /*
+        SUPERSCRIPT
+
+        text^2^
+
+        becomes:
+
+        text<sup>2</sup>
+    */
+
     text = text.replace(
-        /\|\|(.+?)\|\|/g,
-        "<spoiler-text>$1</spoiler-text>"
+        /\^([^^\n]+?)\^/g,
+
+        "<sup>$1</sup>"
     );
 
+
+
+    /*
+        SUBSCRIPT
+
+        text~2~
+
+        becomes:
+
+        text<sub>2</sub>
+    */
+
+    text = text.replace(
+        /~([^~\n]+?)~/g,
+
+        "<sub>$1</sub>"
+    );
+
+
     return text;
+
 }
 
+
+
+/* =========================================================
+   CONVERT
+========================================================= */
 
 function convert() {
 
     const input = document.getElementById("input").value;
 
-    // Normalize line endings
+
+    /*
+        Normalize line endings.
+    */
+
     const text = input.replace(/\r\n/g, "\n");
 
-    // Separate paragraphs by blank lines
+
+    /*
+        Blank lines separate paragraphs.
+    */
+
     const paragraphs = text.split(/\n\s*\n/);
 
+
     const result = paragraphs
+
         .map(paragraph => {
 
             paragraph = paragraph.trim();
+
+
+            /*
+                Ignore completely empty paragraphs.
+            */
 
             if (!paragraph) {
                 return "";
             }
 
-            // Convert normal line breaks to <br>
-            paragraph = paragraph.replace(/\n/g, "<br>\n");
 
-            // Convert Markdown formatting
+            /*
+                Convert single line breaks
+                inside a paragraph to <br>.
+            */
+
+            paragraph = paragraph.replace(
+                /\n/g,
+                "<br>\n"
+            );
+
+
+            /*
+                Apply Markdown formatting.
+            */
+
             paragraph = formatMarkdown(paragraph);
+
+
+            /*
+                Wrap every paragraph in your
+                custom .p span.
+            */
 
             return `<span class="p">${paragraph}</span>`;
 
         })
+
+
+        /*
+            Remove empty entries.
+        */
+
         .filter(Boolean)
+
+
+        /*
+            Keep paragraphs separated.
+        */
+
         .join("\n\n");
 
+
+    /*
+        Show result.
+    */
+
     document.getElementById("output").textContent = result;
+
 }
 
+
+
+/* =========================================================
+   COPY BUTTON
+========================================================= */
 
 function copyOutput() {
 
-    const output = document.getElementById("output").textContent;
+    const output =
+        document.getElementById("output").textContent;
 
-    navigator.clipboard.writeText(output).then(() => {
 
-        const button = document.getElementById("copyBtn");
+    navigator.clipboard.writeText(output)
 
-        const oldText = button.textContent;
+        .then(() => {
 
-        button.textContent = "Copied!";
+            const button =
+                document.getElementById("copyBtn");
 
-        setTimeout(() => {
-            button.textContent = oldText;
-        }, 1500);
+            const oldText =
+                button.textContent;
 
-    });
+
+            button.textContent = "Copied!";
+
+
+            setTimeout(() => {
+
+                button.textContent = oldText;
+
+            }, 1500);
+
+        });
 
 }
 
+
 </script>
+
 
 </body>
 </html>
-
+```
