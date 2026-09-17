@@ -113,7 +113,7 @@
     }
 
 
-    /* NORMAL BLOG PARAGRAPH */
+    /* NORMAL PARAGRAPH */
 
     .p {
         display: block;
@@ -121,7 +121,7 @@
     }
 
 
-    /* QUOTE / EMPHASIS BOX */
+    /* QUOTE / BACKGROUND BOX */
 
     .p-box {
         display: block;
@@ -136,7 +136,7 @@
     }
 
 
-    /* IMAGES IN PREVIEW */
+    /* IMAGES */
 
     #preview img {
         max-width: 100%;
@@ -156,6 +156,14 @@
 
     rt {
         font-size: 0.6em;
+    }
+
+
+    /* LIST */
+
+    #preview .list-component ul {
+        margin-top: 0;
+        margin-bottom: 1em;
     }
 
 
@@ -200,23 +208,22 @@
 
 Today was a **nice** day.
 
-This is *italic*, ~~strikethrough~~ and __underlined__.
+++This is slightly bigger text.++
 
 Here is a [link](https://example.com).
 
-This is H~2~O and this is x^2^.
-
-Japanese ruby:
+Japanese:
 {日本語|にほんご}
 
 ![My image](https://i.imgur.com/example.jpg)
 
+- Item 1
+- Item 2
+- Item 3
+
 --
 
-> This is a quote or an emphasized paragraph.
-> It can contain multiple lines.
-
-++This text is slightly bigger.++"></textarea>
+> This is a quote or emphasized paragraph."></textarea>
 
 
 <br>
@@ -302,6 +309,11 @@ Japanese ruby:
 
     <br>
 
+    <code>- Item</code>
+    → List item
+
+    <br>
+
     <code>--</code>
     → Horizontal divider
 
@@ -317,10 +329,9 @@ Japanese ruby:
 
 
 /*
-    ESCAPE HTML
-
-    This prevents HTML typed into the editor
-    from accidentally becoming real HTML.
+==================================================
+ESCAPE HTML
+==================================================
 */
 
 function escapeHTML(text) {
@@ -334,13 +345,15 @@ function escapeHTML(text) {
 
 
 /*
-    FORMAT INLINE MARKDOWN
+==================================================
+INLINE MARKDOWN
+==================================================
 */
 
 function formatMarkdown(text) {
 
     /*
-        Escape HTML first
+        Escape HTML
     */
 
     text = escapeHTML(text);
@@ -349,13 +362,7 @@ function formatMarkdown(text) {
     /*
         IMAGE
 
-        ![alt text](URL)
-
-        Produces:
-
-        <img src="URL"
-        alt="alt text"
-        style="max-width:100%;height:auto">
+        ![alt](URL)
     */
 
     text = text.replace(
@@ -473,8 +480,6 @@ function formatMarkdown(text) {
         SUBSCRIPT
 
         ~text~
-
-        This is done after ~~strike~~.
     */
 
     text = text.replace(
@@ -490,7 +495,9 @@ function formatMarkdown(text) {
 
 
 /*
-    CONVERT BLOG
+==================================================
+CONVERT BLOG
+==================================================
 */
 
 function convert() {
@@ -507,35 +514,37 @@ function convert() {
         input.replace(/\r\n/g, "\n");
 
 
-    /*
-        Split the input into individual lines
-    */
+    const lines =
+        text.split("\n");
 
-    const lines = text.split("\n");
 
     let result = "";
+
+
+    /*
+        Buffers
+    */
 
     let paragraphLines = [];
 
     let quoteLines = [];
 
+    let listItems = [];
+
 
     /*
-        Counters for generated IDs
-
-        Heading starts at text01.
-
-        Bigger text starts at text05,
-        matching the example you provided.
+        Generated IDs
     */
 
     let headingNumber = 1;
 
     let biggerNumber = 5;
 
+    let listNumber = 3;
+
 
     /*
-        Finish a normal paragraph
+        Finish normal paragraph
     */
 
     function finishParagraph() {
@@ -544,21 +553,26 @@ function convert() {
             return;
         }
 
+
         let paragraph =
             paragraphLines.join("<br>\n");
+
 
         paragraph =
             formatMarkdown(paragraph);
 
+
         result +=
             `<span class="p">${paragraph}</span>\n\n`;
 
+
         paragraphLines = [];
+
     }
 
 
     /*
-        Finish a quote box
+        Finish quote box
     */
 
     function finishQuote() {
@@ -567,63 +581,115 @@ function convert() {
             return;
         }
 
+
         let quote =
             quoteLines.join("<br>\n");
+
 
         quote =
             formatMarkdown(quote);
 
+
         result +=
-            `<div class="p-box"><span class="p">${quote}</span></div>\n\n`;
+            `<div class="p-box"><span clasa="p">${quote}</span></div>\n\n`;
+
 
         quoteLines = [];
+
     }
 
 
     /*
-        Go through every line
+        Finish list
+    */
+
+    function finishList() {
+
+        if (listItems.length === 0) {
+            return;
+        }
+
+
+        let id =
+            "list" +
+            String(listNumber).padStart(2, "0");
+
+
+        let listHTML = "";
+
+
+        listItems.forEach(item => {
+
+            item =
+                formatMarkdown(item);
+
+
+            listHTML +=
+                `        <li>\n` +
+                `            <p>${item}</p>\n` +
+                `        </li>\n`;
+
+        });
+
+
+        result +=
+            `<div id="${id}" class="list-component instance-3">\n` +
+            `    <ul>\n` +
+            listHTML +
+            `    </ul>\n` +
+            `</div>\n\n`;
+
+
+        listItems = [];
+
+        listNumber++;
+
+    }
+
+
+    /*
+        Process every line
     */
 
     for (let i = 0; i < lines.length; i++) {
 
-        let line = lines[i];
+        let line =
+            lines[i];
 
-        let trimmed = line.trim();
+
+        let trimmed =
+            line.trim();
 
 
         /*
             EMPTY LINE
-
-            Finish anything currently being written.
         */
 
         if (trimmed === "") {
 
             finishParagraph();
             finishQuote();
+            finishList();
 
             continue;
         }
 
 
         /*
-            HORIZONTAL DIVIDER
-
-            A line containing only:
+            HORIZONTAL RULE
 
             --
 
-            becomes:
-
-            <hr>
         */
 
         if (trimmed === "--") {
 
             finishParagraph();
             finishQuote();
+            finishList();
 
-            result += "<hr>\n\n";
+            result +=
+                "<hr>\n\n";
 
             continue;
         }
@@ -633,32 +699,31 @@ function convert() {
             HEADING
 
             # Heading
-
-            becomes:
-
-            <h2 id="text01"
-                class="text-component instance-1 style-3">
-                Heading
-            </h2>
         */
 
         if (/^#\s+/.test(trimmed)) {
 
             finishParagraph();
             finishQuote();
+            finishList();
+
 
             let heading =
                 trimmed.replace(/^#\s+/, "");
 
+
             heading =
                 formatMarkdown(heading);
+
 
             let id =
                 "text" +
                 String(headingNumber).padStart(2, "0");
 
+
             result +=
                 `<h2 id="${id}" class="text-component instance-1 style-3">${heading}</h2>\n\n`;
+
 
             headingNumber++;
 
@@ -670,13 +735,6 @@ function convert() {
             SLIGHTLY BIGGER TEXT
 
             ++text++
-
-            becomes:
-
-            <p id="text05"
-               class="text-component instance-5 style-2">
-               text
-            </p>
         */
 
         if (
@@ -687,19 +745,25 @@ function convert() {
 
             finishParagraph();
             finishQuote();
+            finishList();
+
 
             let bigger =
                 trimmed.slice(2, -2);
 
+
             bigger =
                 formatMarkdown(bigger);
+
 
             let id =
                 "text" +
                 String(biggerNumber).padStart(2, "0");
 
+
             result +=
                 `<p id="${id}" class="text-component instance-5 style-2">${bigger}</p>\n\n`;
+
 
             biggerNumber++;
 
@@ -710,22 +774,18 @@ function convert() {
         /*
             QUOTE / BACKGROUND BOX
 
-            Lines beginning with >
-
-            Example:
-
-            > This is a quote.
-            > This is another line.
-
-            become ONE box.
+            > Text
         */
 
         if (/^>\s?/.test(trimmed)) {
 
             finishParagraph();
+            finishList();
+
 
             let quoteText =
                 trimmed.replace(/^>\s?/, "");
+
 
             quoteLines.push(quoteText);
 
@@ -734,34 +794,59 @@ function convert() {
 
 
         /*
-            NORMAL TEXT
+            LIST ITEM
 
-            Add the line to the current paragraph.
+            - Item
+        */
+
+        if (/^-\s+/.test(trimmed)) {
+
+            finishParagraph();
+            finishQuote();
+
+
+            let item =
+                trimmed.replace(/^-\s+/, "");
+
+
+            listItems.push(item);
+
+            continue;
+        }
+
+
+        /*
+            NORMAL TEXT
         */
 
         finishQuote();
+        finishList();
+
 
         paragraphLines.push(trimmed);
+
     }
 
 
     /*
-        Finish anything left at the end.
+        Finish remaining content
     */
 
     finishParagraph();
     finishQuote();
+    finishList();
 
 
     /*
-        Remove the final extra newlines
+        Remove trailing whitespace
     */
 
-    result = result.trim();
+    result =
+        result.trim();
 
 
     /*
-        Show HTML source
+        HTML OUTPUT
     */
 
     document.getElementById("output").textContent =
@@ -769,7 +854,7 @@ function convert() {
 
 
     /*
-        Show rendered preview
+        LIVE PREVIEW
     */
 
     document.getElementById("preview").innerHTML =
@@ -779,7 +864,9 @@ function convert() {
 
 
 /*
-    COPY HTML
+==================================================
+COPY HTML
+==================================================
 */
 
 function copyOutput() {
@@ -795,8 +882,10 @@ function copyOutput() {
             const button =
                 document.getElementById("copyBtn");
 
+
             const oldText =
                 button.textContent;
+
 
             button.textContent =
                 "Copied!";
@@ -815,9 +904,9 @@ function copyOutput() {
 
 
 /*
-    LIVE PREVIEW
-
-    Updates automatically while typing.
+==================================================
+LIVE PREVIEW
+==================================================
 */
 
 document
