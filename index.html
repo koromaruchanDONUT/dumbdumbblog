@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -33,8 +34,9 @@
 
     textarea {
         width: 100%;
-        min-height: 350px;
+        min-height: 400px;
         box-sizing: border-box;
+
         padding: 15px;
 
         font-family: monospace;
@@ -74,7 +76,8 @@
         opacity: 0.8;
     }
 
-    /* HTML output */
+
+    /* HTML OUTPUT */
 
     pre {
         background: #222;
@@ -93,7 +96,8 @@
         line-height: 1.5;
     }
 
-    /* Preview */
+
+    /* PREVIEW */
 
     #preview {
         background: white;
@@ -108,14 +112,31 @@
         line-height: 1.6;
     }
 
-    /* Your blog paragraph style */
+
+    /* NORMAL BLOG PARAGRAPH */
 
     .p {
         display: block;
         margin-bottom: 1em;
     }
 
-    /* Images in preview */
+
+    /* QUOTE / EMPHASIS BOX */
+
+    .p-box {
+        display: block;
+
+        background: #f0f0f0;
+
+        padding: 15px 20px;
+
+        margin: 15px 0;
+
+        border-radius: 6px;
+    }
+
+
+    /* IMAGES IN PREVIEW */
 
     #preview img {
         max-width: 100%;
@@ -126,7 +147,8 @@
         margin: 15px 0;
     }
 
-    /* Ruby */
+
+    /* RUBY */
 
     ruby {
         ruby-align: center;
@@ -136,10 +158,12 @@
         font-size: 0.6em;
     }
 
-    /* Help box */
+
+    /* HELP */
 
     .help {
         background: #fff;
+
         border: 1px solid #ddd;
         border-radius: 8px;
 
@@ -150,7 +174,9 @@
 
     .help code {
         background: #eee;
+
         padding: 2px 5px;
+
         border-radius: 4px;
     }
 
@@ -170,27 +196,27 @@
 
 <textarea id="input" placeholder="Write your blog here...
 
-Example:
+# My Blog Heading
 
-Today was a nice day.
+Today was a **nice** day.
 
-I went to the **cafe** and had *coffee*.
-
-This part is ~~no longer true~~.
-
-This is __underlined__.
+This is *italic*, ~~strikethrough~~ and __underlined__.
 
 Here is a [link](https://example.com).
 
-H₂O can use subscript like H~2~O.
-
-x² can use superscript like x^2^.
+This is H~2~O and this is x^2^.
 
 Japanese ruby:
-{漢字|かんじ}
+{日本語|にほんご}
 
-And an image:
-![My image](https://example.com/image.jpg)"></textarea>
+![My image](https://i.imgur.com/example.jpg)
+
+--
+
+> This is a quote or an emphasized paragraph.
+> It can contain multiple lines.
+
+++This text is slightly bigger.++"></textarea>
 
 
 <br>
@@ -221,6 +247,16 @@ And an image:
 
     <br><br>
 
+    <code># Heading</code>
+    → Heading
+
+    <br>
+
+    <code>++Bigger text++</code>
+    → Slightly bigger text
+
+    <br>
+
     <code>**bold**</code>
     → <strong>bold</strong>
 
@@ -241,28 +277,38 @@ And an image:
 
     <br>
 
-    <code>[link](URL)</code>
-    → text link
+    <code>[text](URL)</code>
+    → Link
 
     <br>
 
     <code>^text^</code>
-    → superscript
+    → Superscript
 
     <br>
 
     <code>~text~</code>
-    → subscript
+    → Subscript
 
     <br>
 
     <code>{漢字|かんじ}</code>
-    → ruby text
+    → Ruby text
 
     <br>
 
     <code>![alt](URL)</code>
-    → image
+    → Image
+
+    <br>
+
+    <code>--</code>
+    → Horizontal divider
+
+    <br>
+
+    <code>&gt; text</code>
+    → Background/quote box
 
 </div>
 
@@ -271,10 +317,10 @@ And an image:
 
 
 /*
-    Escape HTML
+    ESCAPE HTML
 
-    This prevents things typed into the editor
-    from accidentally becoming HTML.
+    This prevents HTML typed into the editor
+    from accidentally becoming real HTML.
 */
 
 function escapeHTML(text) {
@@ -288,28 +334,34 @@ function escapeHTML(text) {
 
 
 /*
-    Convert Markdown formatting
+    FORMAT INLINE MARKDOWN
 */
 
 function formatMarkdown(text) {
 
     /*
-        Escape HTML first.
+        Escape HTML first
     */
 
     text = escapeHTML(text);
 
 
     /*
-        IMAGES
+        IMAGE
 
-        ![description](URL)
+        ![alt text](URL)
+
+        Produces:
+
+        <img src="URL"
+        alt="alt text"
+        style="max-width:100%;height:auto">
     */
 
     text = text.replace(
         /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g,
 
-        '<img src="$2" alt="$1">'
+        '<img src="$2" alt="$1" style="max-width:100%;height:auto">'
     );
 
 
@@ -327,7 +379,7 @@ function formatMarkdown(text) {
 
 
     /*
-        RUBY TEXT
+        RUBY
 
         {漢字|かんじ}
     */
@@ -422,8 +474,7 @@ function formatMarkdown(text) {
 
         ~text~
 
-        This happens AFTER strikethrough,
-        so ~~text~~ still works.
+        This is done after ~~strike~~.
     */
 
     text = text.replace(
@@ -439,7 +490,7 @@ function formatMarkdown(text) {
 
 
 /*
-    Convert the entire blog
+    CONVERT BLOG
 */
 
 function convert() {
@@ -457,54 +508,256 @@ function convert() {
 
 
     /*
-        Blank lines create new paragraphs
+        Split the input into individual lines
     */
 
-    const paragraphs =
-        text.split(/\n\s*\n/);
+    const lines = text.split("\n");
+
+    let result = "";
+
+    let paragraphLines = [];
+
+    let quoteLines = [];
 
 
-    const result = paragraphs
+    /*
+        Counters for generated IDs
 
-        .map(paragraph => {
+        Heading starts at text01.
 
-            paragraph = paragraph.trim();
+        Bigger text starts at text05,
+        matching the example you provided.
+    */
 
+    let headingNumber = 1;
 
-            if (!paragraph) {
-                return "";
-            }
-
-
-            /*
-                Convert single line breaks
-                inside a paragraph into <br>
-            */
-
-            paragraph =
-                paragraph.replace(/\n/g, "<br>\n");
+    let biggerNumber = 5;
 
 
-            /*
-                Convert Markdown
-            */
+    /*
+        Finish a normal paragraph
+    */
 
-            paragraph =
-                formatMarkdown(paragraph);
+    function finishParagraph() {
+
+        if (paragraphLines.length === 0) {
+            return;
+        }
+
+        let paragraph =
+            paragraphLines.join("<br>\n");
+
+        paragraph =
+            formatMarkdown(paragraph);
+
+        result +=
+            `<span class="p">${paragraph}</span>\n\n`;
+
+        paragraphLines = [];
+    }
 
 
-            /*
-                Wrap everything in your
-                custom paragraph span
-            */
+    /*
+        Finish a quote box
+    */
 
-            return `<span class="p">${paragraph}</span>`;
+    function finishQuote() {
 
-        })
+        if (quoteLines.length === 0) {
+            return;
+        }
 
-        .filter(Boolean)
+        let quote =
+            quoteLines.join("<br>\n");
 
-        .join("\n\n");
+        quote =
+            formatMarkdown(quote);
+
+        result +=
+            `<div class="p-box">${quote}</div>\n\n`;
+
+        quoteLines = [];
+    }
+
+
+    /*
+        Go through every line
+    */
+
+    for (let i = 0; i < lines.length; i++) {
+
+        let line = lines[i];
+
+        let trimmed = line.trim();
+
+
+        /*
+            EMPTY LINE
+
+            Finish anything currently being written.
+        */
+
+        if (trimmed === "") {
+
+            finishParagraph();
+            finishQuote();
+
+            continue;
+        }
+
+
+        /*
+            HORIZONTAL DIVIDER
+
+            A line containing only:
+
+            --
+
+            becomes:
+
+            <hr>
+        */
+
+        if (trimmed === "--") {
+
+            finishParagraph();
+            finishQuote();
+
+            result += "<hr>\n\n";
+
+            continue;
+        }
+
+
+        /*
+            HEADING
+
+            # Heading
+
+            becomes:
+
+            <h2 id="text01"
+                class="text-component instance-1 style-3">
+                Heading
+            </h2>
+        */
+
+        if (/^#\s+/.test(trimmed)) {
+
+            finishParagraph();
+            finishQuote();
+
+            let heading =
+                trimmed.replace(/^#\s+/, "");
+
+            heading =
+                formatMarkdown(heading);
+
+            let id =
+                "text" +
+                String(headingNumber).padStart(2, "0");
+
+            result +=
+                `<h2 id="${id}" class="text-component instance-1 style-3">${heading}</h2>\n\n`;
+
+            headingNumber++;
+
+            continue;
+        }
+
+
+        /*
+            SLIGHTLY BIGGER TEXT
+
+            ++text++
+
+            becomes:
+
+            <p id="text05"
+               class="text-component instance-5 style-2">
+               text
+            </p>
+        */
+
+        if (
+            trimmed.startsWith("++") &&
+            trimmed.endsWith("++") &&
+            trimmed.length > 4
+        ) {
+
+            finishParagraph();
+            finishQuote();
+
+            let bigger =
+                trimmed.slice(2, -2);
+
+            bigger =
+                formatMarkdown(bigger);
+
+            let id =
+                "text" +
+                String(biggerNumber).padStart(2, "0");
+
+            result +=
+                `<p id="${id}" class="text-component instance-5 style-2">${bigger}</p>\n\n`;
+
+            biggerNumber++;
+
+            continue;
+        }
+
+
+        /*
+            QUOTE / BACKGROUND BOX
+
+            Lines beginning with >
+
+            Example:
+
+            > This is a quote.
+            > This is another line.
+
+            become ONE box.
+        */
+
+        if (/^>\s?/.test(trimmed)) {
+
+            finishParagraph();
+
+            let quoteText =
+                trimmed.replace(/^>\s?/, "");
+
+            quoteLines.push(quoteText);
+
+            continue;
+        }
+
+
+        /*
+            NORMAL TEXT
+
+            Add the line to the current paragraph.
+        */
+
+        finishQuote();
+
+        paragraphLines.push(trimmed);
+    }
+
+
+    /*
+        Finish anything left at the end.
+    */
+
+    finishParagraph();
+    finishQuote();
+
+
+    /*
+        Remove the final extra newlines
+    */
+
+    result = result.trim();
 
 
     /*
@@ -517,10 +770,6 @@ function convert() {
 
     /*
         Show rendered preview
-
-        IMPORTANT:
-        We use innerHTML here intentionally
-        because this is the HTML we just generated.
     */
 
     document.getElementById("preview").innerHTML =
@@ -530,7 +779,7 @@ function convert() {
 
 
 /*
-    Copy generated HTML
+    COPY HTML
 */
 
 function copyOutput() {
@@ -546,10 +795,8 @@ function copyOutput() {
             const button =
                 document.getElementById("copyBtn");
 
-
             const oldText =
                 button.textContent;
-
 
             button.textContent =
                 "Copied!";
@@ -568,10 +815,9 @@ function copyOutput() {
 
 
 /*
-    Live preview while typing
+    LIVE PREVIEW
 
-    This means you don't even have to
-    press Convert every time.
+    Updates automatically while typing.
 */
 
 document
@@ -580,7 +826,7 @@ document
 
 
 /*
-    Run once when the page opens
+    Initial conversion
 */
 
 convert();
@@ -589,3 +835,4 @@ convert();
 
 </body>
 </html>
+```
