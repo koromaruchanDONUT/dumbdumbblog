@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -201,53 +200,6 @@
     Write your blog using simple Markdown, then convert it into your custom HTML.
 </div>
 
-
-<textarea id="input" placeholder="Write your blog here...
-
-# My Blog Heading
-
-Today was a **nice** day.
-
-++This is slightly bigger text.++
-
-Here is a [link](https://example.com).
-
-Japanese:
-{日本語|にほんご}
-
-![My image](https://i.imgur.com/example.jpg)
-
-- Item 1
-- Item 2
-- Item 3
-
---
-
-> This is a quote or emphasized paragraph."></textarea>
-
-
-<br>
-
-
-<button id="convertBtn" onclick="convert()">
-    Convert
-</button>
-
-<button id="copyBtn" onclick="copyOutput()">
-    Copy HTML
-</button>
-
-
-<h2>HTML Output</h2>
-
-<pre id="output"></pre>
-
-
-<h2>Preview</h2>
-
-<div id="preview"></div>
-
-
 <div class="help">
 
     <strong>Markdown shortcuts</strong>
@@ -323,6 +275,53 @@ Japanese:
     → Background/quote box
 
 </div>
+
+<textarea id="input" placeholder="Write your blog here...
+
+# My Blog Heading
+
+Today was a **nice** day.
+
+++This is slightly bigger text.++
+
+Here is a [link](https://example.com).
+
+Japanese:
+{日本語|にほんご}
+
+![My image](https://i.imgur.com/example.jpg)
+
+- Item 1
+- Item 2
+- Item 3
+
+--
+
+> This is a quote or emphasized paragraph."></textarea>
+
+
+<br>
+
+
+<button id="convertBtn" onclick="convert()">
+    Convert
+</button>
+
+<button id="copyBtn" onclick="copyOutput()">
+    Copy HTML
+</button>
+
+
+<h2>HTML Output</h2>
+
+<pre id="output"></pre>
+
+
+<h2>Preview</h2>
+
+<div id="preview"></div>
+
+
 
 
 <script>
@@ -924,4 +923,3 @@ convert();
 
 </body>
 </html>
-```
