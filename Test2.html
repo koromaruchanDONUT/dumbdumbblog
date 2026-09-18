@@ -521,16 +521,22 @@ function convertMarkdown(markdown) {
             if (quoteLines.length === 0) {
 
                 const colorMatch = quoteText.match(
-                    /^\[(#E9F3F7|#F9F2F5)\]\s*(.*)$/i
-                );
+    /^\[(blue|pink)\]\s*(.*)$/i
+);
 
-                if (colorMatch) {
+if (colorMatch) {
 
-                    quoteColor = colorMatch[1].toUpperCase();
+    if (colorMatch[1].toLowerCase() === "blue") {
+        quoteColor = "#E9F3F7";
+    }
 
-                    quoteText = colorMatch[2];
+    if (colorMatch[1].toLowerCase() === "pink") {
+        quoteColor = "#F9F2F5";
+    }
 
-                }
+    quoteText = colorMatch[2];
+
+}
             }
 
             quoteLines.push(quoteText);
