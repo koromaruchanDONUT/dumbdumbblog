@@ -62,8 +62,6 @@
         line-height: 1.7;
     }
 
-    /* Preview styling */
-
     #preview .p-box {
         display: block;
         background: #f0f0f0;
@@ -157,114 +155,155 @@ function formatInline(text) {
     text = escapeHTML(text);
 
     /*
-        Protect images and links first so their URLs
-        aren't accidentally modified by other formatting.
+        Protect images and links first.
+
+        IMPORTANT:
+        The placeholder MUST NOT contain characters
+        used by our formatting rules.
+
+        Old placeholder:
+        ___PROTECTED_0___
+
+        That accidentally matched the underline rule.
+
+        New placeholder:
+        §§PROTECTED0§§
+
+        None of our formatting rules use §.
     */
 
     const protectedItems = [];
 
     function protect(html) {
-        const id = `___PROTECTED_${protectedItems.length}___`;
+        const id = `§§PROTECTED${protectedItems.length}§§`;
         protectedItems.push(html);
         return id;
     }
 
-    /* Images */
+
+    /* --------------------------------------------------
+       IMAGES
+    -------------------------------------------------- */
 
     text = text.replace(
         /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g,
         function(match, alt, url) {
+
             return protect(
                 `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto">`
             );
+
         }
     );
 
-    /* Links */
+
+    /* --------------------------------------------------
+       LINKS
+    -------------------------------------------------- */
 
     text = text.replace(
         /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
         function(match, label, url) {
+
             return protect(
-                `<a href="${url}">${label}</a>`
+                `<a href="${url}" >${label}</a>`
             );
+
         }
     );
 
-    /* Ruby */
+
+    /* --------------------------------------------------
+       RUBY
+    -------------------------------------------------- */
 
     text = text.replace(
         /\{([^|{}]+)\|([^{}]+)\}/g,
         "<ruby>$1<rt>$2</rt></ruby>"
     );
 
-    /* Bold + italic */
+
+    /* --------------------------------------------------
+       BOLD + ITALIC
+    -------------------------------------------------- */
 
     text = text.replace(
         /\*\*\*(.+?)\*\*\*/g,
         "<strong><em>$1</em></strong>"
     );
 
-    /* Bold */
+
+    /* --------------------------------------------------
+       BOLD
+    -------------------------------------------------- */
 
     text = text.replace(
         /\*\*(.+?)\*\*/g,
         "<strong>$1</strong>"
     );
 
-    /* Italic */
+
+    /* --------------------------------------------------
+       ITALIC
+    -------------------------------------------------- */
 
     text = text.replace(
         /\*(.+?)\*/g,
         "<em>$1</em>"
     );
 
-    /* Strikethrough */
+
+    /* --------------------------------------------------
+       STRIKETHROUGH
+    -------------------------------------------------- */
 
     text = text.replace(
         /~~(.+?)~~/g,
         "<s>$1</s>"
     );
 
-    /*
-        Underline
 
-        This is intentionally handled after bold so that
-        __text__ becomes underline instead of conflicting
-        with other formatting.
-    */
+    /* --------------------------------------------------
+       UNDERLINE
+    -------------------------------------------------- */
 
     text = text.replace(
         /__(.+?)__/g,
         "<u>$1</u>"
     );
 
-    /* Superscript */
+
+    /* --------------------------------------------------
+       SUPERSCRIPT
+    -------------------------------------------------- */
 
     text = text.replace(
         /\^(.+?)\^/g,
         "<sup>$1</sup>"
     );
 
-    /*
-        Subscript
 
-        Requires ~text~ but does not interfere with
-        ~~strikethrough~~.
-    */
+    /* --------------------------------------------------
+       SUBSCRIPT
+    -------------------------------------------------- */
 
     text = text.replace(
         /(?<!~)~([^~\n]+?)~(?!~)/g,
         "<sub>$1</sub>"
     );
 
-    /* Restore protected items */
+
+    /* --------------------------------------------------
+       RESTORE PROTECTED ITEMS
+    -------------------------------------------------- */
 
     protectedItems.forEach(function(html, index) {
+
         text = text.replace(
-            `___PROTECTED_${index}___`,
+            `§§PROTECTED${index}§§`,
             html
         );
+
     });
 
     return text;
@@ -272,7 +311,7 @@ function formatInline(text) {
 
 
 /* --------------------------------------------------
-   CONVERTER
+   MAIN CONVERTER
 -------------------------------------------------- */
 
 function convertMarkdown(markdown) {
@@ -293,7 +332,7 @@ function convertMarkdown(markdown) {
 
 
     /* --------------------------------------------------
-       NORMAL PARAGRAPH
+       FINISH NORMAL TEXT
     -------------------------------------------------- */
 
     function finishParagraph() {
@@ -305,7 +344,9 @@ function convertMarkdown(markdown) {
         result += `<p id="text${textNumber}" class="text-component instance-${textNumber} style-1">\n`;
 
         normalParagraphs.forEach(function(paragraph) {
+
             result += `<span class="p">${formatInline(paragraph)}</span>\n`;
+
         });
 
         result += `</p>\n\n`;
@@ -316,7 +357,7 @@ function convertMarkdown(markdown) {
 
 
     /* --------------------------------------------------
-       QUOTE BOX
+       FINISH QUOTE
     -------------------------------------------------- */
 
     function finishQuote() {
@@ -325,7 +366,7 @@ function convertMarkdown(markdown) {
             return;
         }
 
-        let quote = quoteLines
+        const quote = quoteLines
             .map(line => formatInline(line))
             .join("<br>\n");
 
@@ -336,8 +377,6 @@ function convertMarkdown(markdown) {
         }
 
         result += `<div class="p-box"${style}><p id="text16" class="text-component instance-16 style-1">
-                
-                
                 <span class="p">\n`;
         result += `${quote}\n`;
         result += `</span></p></div>\n\n`;
@@ -348,7 +387,7 @@ function convertMarkdown(markdown) {
 
 
     /* --------------------------------------------------
-       LIST
+       FINISH LIST
     -------------------------------------------------- */
 
     function finishList() {
@@ -377,26 +416,17 @@ function convertMarkdown(markdown) {
 
 
     /* --------------------------------------------------
-       PROCESS EACH LINE
+       PROCESS LINES
     -------------------------------------------------- */
 
     for (let i = 0; i < lines.length; i++) {
 
-        const originalLine = lines[i];
-        const trimmed = originalLine.trim();
+        const trimmed = lines[i].trim();
 
 
         /* Empty line */
 
         if (trimmed === "") {
-
-            /*
-                Empty lines separate normal paragraphs,
-                but don't necessarily create separate <p>
-                elements. All normal paragraphs remain
-                inside the same parent <p>.
-            */
-
             continue;
         }
 
@@ -482,13 +512,10 @@ function convertMarkdown(markdown) {
 
             let quoteText = trimmed.replace(/^>\s?/, "");
 
-            /*
-                Only the FIRST line of a quote box can
-                specify its background color.
 
-                Supported:
-                [#E9F3F7]
-                [#F9F2F5]
+            /*
+                Only the first line can specify
+                the quote background color.
             */
 
             if (quoteLines.length === 0) {
@@ -512,10 +539,7 @@ function convertMarkdown(markdown) {
         }
 
 
-        /*
-            If we were inside a quote and this line
-            isn't a quote anymore, finish the quote.
-        */
+        /* End quote */
 
         finishQuote();
 
@@ -536,10 +560,7 @@ function convertMarkdown(markdown) {
         }
 
 
-        /*
-            If we were inside a list and this line
-            isn't a list item anymore, finish it.
-        */
+        /* End list */
 
         finishList();
 
@@ -572,7 +593,6 @@ function convertMarkdown(markdown) {
 const input = document.getElementById("input");
 const preview = document.getElementById("preview");
 const output = document.getElementById("output");
-const copyButton = document.getElementById("copyButton");
 
 function update() {
 
@@ -588,6 +608,8 @@ input.addEventListener("input", update);
 /* --------------------------------------------------
    COPY BUTTON
 -------------------------------------------------- */
+
+const copyButton = document.getElementById("copyButton");
 
 copyButton.addEventListener("click", function() {
 
