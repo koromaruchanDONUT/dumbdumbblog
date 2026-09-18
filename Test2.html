@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Blog Markdown → HTML Converter</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 30px auto;
+        padding: 0 20px;
+    }
+
+    textarea {
+        width: 100%;
+        min-height: 350px;
+        padding: 12px;
+        box-sizing: border-box;
+        font-family: monospace;
+        font-size: 14px;
+        resize: vertical;
+    }
+
+    .columns {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .box {
+        border: 1px solid #ccc;
+        padding: 15px;
+        box-sizing: border-box;
+    }
+
+    #preview {
+        min-height: 350px;
+        overflow-wrap: break-word;
+    }
+
+    #output {
+        white-space: pre-wrap;
+        word-break: break-word;
+        margin: 0;
+    }
+
+    button {
+        margin-top: 10px;
+        padding: 8px 14px;
+        cursor: pointer;
+    }
+
+    .help {
+        background: #f5f5f5;
+        padding: 15px;
+        margin-bottom: 20px;
+        line-height: 1.7;
+    }
+
+    /* Preview styling */
+
+    #preview .p-box {
+        display: block;
+        background: #f0f0f0;
+        padding: 15px 20px;
+        margin: 15px 0;
+        border-radius: 6px;
+    }
+
+    #preview .list-component ul {
+        margin-top: 0;
+        margin-bottom: 1em;
+    }
+
+    #preview .list-component li p {
+        margin: 0;
+    }
+
+    #preview img {
+        max-width: 100%;
+        height: auto;
+    }
+</style>
+
+</head>
+
+<body>
+
+<h1>Blog Markdown → HTML Converter</h1>
+
+<div class="help">
+    <strong>Syntax:</strong><br>
+
+```
+<code>**bold**</code> → &lt;strong&gt;<br>
+<code>*italic*</code> → &lt;em&gt;<br>
+<code>~~strike~~</code> → &lt;s&gt;<br>
+<code>__underline__</code> → &lt;u&gt;<br>
+<code>***bold italic***</code> → &lt;strong&gt;&lt;em&gt;<br>
+<code>[text](URL)</code> → link<br>
+<code>{漢字|かんじ}</code> → ruby text<br>
+<code>^text^</code> → superscript<br>
+<code>~text~</code> → subscript<br>
+<code>![alt](IMAGE_URL)</code> → image<br>
+<code># Heading</code> → heading<br>
+<code>++Bigger text++</code> → slightly bigger text<br>
+<code>- Item</code> → unordered list<br>
+<code>--</code> → horizontal line<br>
+<code>&gt; Quote</code> → quote box<br>
+<code>&gt; [#E9F3F7] Quote</code> → blue quote box<br>
+<code>&gt; [#F9F2F5] Quote</code> → pink quote box
+```
+
+</div>
+
+<textarea id="input" placeholder="Write your blog post here..."></textarea>
+
+<div class="columns">
+
+```
+<div class="box">
+    <h2>Preview</h2>
+    <div id="preview"></div>
+</div>
+
+<div class="box">
+    <h2>HTML Output</h2>
+    <pre id="output"></pre>
+    <button id="copyButton">Copy HTML</button>
+</div>
+```
+
+</div>
+
+<script>
+
+function escapeHTML(text) {
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+
+/* --------------------------------------------------
+   INLINE FORMATTING
+-------------------------------------------------- */
+
+function formatInline(text) {
+
+    text = escapeHTML(text);
+
+    /*
+        Protect images and links first so their URLs
+        aren't accidentally modified by other formatting.
+    */
+
+    const protectedItems = [];
+
+    function protect(html) {
+        const id = `___PROTECTED_${protectedItems.length}___`;
+        protectedItems.push(html);
+        return id;
+    }
+
+    /* Images */
+
+    text = text.replace(
+        /!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g,
+        function(match, alt, url) {
+            return protect(
+                `<img src="${url}" alt="${alt}" style="max-width:100%;height:auto">`
+            );
+        }
+    );
+
+    /* Links */
+
+    text = text.replace(
+        /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+        function(match, label, url) {
+            return protect(
+                `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`
+            );
+        }
+    );
+
+    /* Ruby */
+
+    text = text.replace(
+        /\{([^|{}]+)\|([^{}]+)\}/g,
+        "<ruby>$1<rt>$2</rt></ruby>"
+    );
+
+    /* Bold + italic */
+
+    text = text.replace(
+        /\*\*\*(.+?)\*\*\*/g,
+        "<strong><em>$1</em></strong>"
+    );
+
+    /* Bold */
+
+    text = text.replace(
+        /\*\*(.+?)\*\*/g,
+        "<strong>$1</strong>"
+    );
+
+    /* Italic */
+
+    text = text.replace(
+        /\*(.+?)\*/g,
+        "<em>$1</em>"
+    );
+
+    /* Strikethrough */
+
+    text = text.replace(
+        /~~(.+?)~~/g,
+        "<s>$1</s>"
+    );
+
+    /*
+        Underline
+
+        This is intentionally handled after bold so that
+        __text__ becomes underline instead of conflicting
+        with other formatting.
+    */
+
+    text = text.replace(
+        /__(.+?)__/g,
+        "<u>$1</u>"
+    );
+
+    /* Superscript */
+
+    text = text.replace(
+        /\^(.+?)\^/g,
+        "<sup>$1</sup>"
+    );
+
+    /*
+        Subscript
+
+        Requires ~text~ but does not interfere with
+        ~~strikethrough~~.
+    */
+
+    text = text.replace(
+        /(?<!~)~([^~\n]+?)~(?!~)/g,
+        "<sub>$1</sub>"
+    );
+
+    /* Restore protected items */
+
+    protectedItems.forEach(function(html, index) {
+        text = text.replace(
+            `___PROTECTED_${index}___`,
+            html
+        );
+    });
+
+    return text;
+}
+
+
+/* --------------------------------------------------
+   CONVERTER
+-------------------------------------------------- */
+
+function convertMarkdown(markdown) {
+
+    const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+
+    let result = "";
+
+    let normalParagraphs = [];
+
+    let quoteLines = [];
+    let quoteColor = null;
+
+    let listItems = [];
+
+    let textNumber = 16;
+    let listNumber = 3;
+
+
+    /* --------------------------------------------------
+       NORMAL PARAGRAPH
+    -------------------------------------------------- */
+
+    function finishParagraph() {
+
+        if (normalParagraphs.length === 0) {
+            return;
+        }
+
+        result += `<p id="text${textNumber}" class="text-component instance-${textNumber} style-1">\n`;
+
+        normalParagraphs.forEach(function(paragraph) {
+            result += `<span class="p">${formatInline(paragraph)}</span>\n`;
+        });
+
+        result += `</p>\n\n`;
+
+        textNumber++;
+        normalParagraphs = [];
+    }
+
+
+    /* --------------------------------------------------
+       QUOTE BOX
+    -------------------------------------------------- */
+
+    function finishQuote() {
+
+        if (quoteLines.length === 0) {
+            return;
+        }
+
+        let quote = quoteLines
+            .map(line => formatInline(line))
+            .join("<br>\n");
+
+        let style = "";
+
+        if (quoteColor) {
+            style = ` style="background-color:${quoteColor};"`;
+        }
+
+        result += `<div class="p-box"${style}>\n`;
+        result += `${quote}\n`;
+        result += `</div>\n\n`;
+
+        quoteLines = [];
+        quoteColor = null;
+    }
+
+
+    /* --------------------------------------------------
+       LIST
+    -------------------------------------------------- */
+
+    function finishList() {
+
+        if (listItems.length === 0) {
+            return;
+        }
+
+        result += `<div id="list${String(listNumber).padStart(2, "0")}" class="list-component instance-${listNumber}">\n`;
+        result += `    <ul>\n`;
+
+        listItems.forEach(function(item) {
+
+            result += `        <li>\n`;
+            result += `            <p>${formatInline(item)}</p>\n`;
+            result += `        </li>\n`;
+
+        });
+
+        result += `    </ul>\n`;
+        result += `</div>\n\n`;
+
+        listNumber++;
+        listItems = [];
+    }
+
+
+    /* --------------------------------------------------
+       PROCESS EACH LINE
+    -------------------------------------------------- */
+
+    for (let i = 0; i < lines.length; i++) {
+
+        const originalLine = lines[i];
+        const trimmed = originalLine.trim();
+
+
+        /* Empty line */
+
+        if (trimmed === "") {
+
+            /*
+                Empty lines separate normal paragraphs,
+                but don't necessarily create separate <p>
+                elements. All normal paragraphs remain
+                inside the same parent <p>.
+            */
+
+            continue;
+        }
+
+
+        /* --------------------------------------------------
+           HEADING
+        -------------------------------------------------- */
+
+        if (/^#\s+/.test(trimmed)) {
+
+            finishParagraph();
+            finishQuote();
+            finishList();
+
+            const headingText = trimmed.replace(/^#\s+/, "");
+
+            result += `<h2 id="text01" class="text-component instance-1 style-3">${formatInline(headingText)}</h2>\n\n`;
+
+            continue;
+        }
+
+
+        /* --------------------------------------------------
+           SLIGHTLY BIGGER TEXT
+        -------------------------------------------------- */
+
+        if (/^\+\+.+\+\+$/.test(trimmed)) {
+
+            finishParagraph();
+            finishQuote();
+            finishList();
+
+            const biggerText = trimmed
+                .replace(/^\+\+/, "")
+                .replace(/\+\+$/, "");
+
+            result += `<p id="text05" class="text-component instance-5 style-2">${formatInline(biggerText)}</p>\n\n`;
+
+            continue;
+        }
+
+
+        /* --------------------------------------------------
+           HORIZONTAL RULE
+        -------------------------------------------------- */
+
+        if (trimmed === "--") {
+
+            finishParagraph();
+            finishQuote();
+            finishList();
+
+            result += `<hr>\n\n`;
+
+            continue;
+        }
+
+
+        /* --------------------------------------------------
+           IMAGE
+        -------------------------------------------------- */
+
+        if (/^!\[[^\]]*\]\(https?:\/\/[^)\s]+\)$/.test(trimmed)) {
+
+            finishParagraph();
+            finishQuote();
+            finishList();
+
+            result += formatInline(trimmed) + "\n\n";
+
+            continue;
+        }
+
+
+        /* --------------------------------------------------
+           QUOTE BOX
+        -------------------------------------------------- */
+
+        if (/^>\s?/.test(trimmed)) {
+
+            finishParagraph();
+            finishList();
+
+            let quoteText = trimmed.replace(/^>\s?/, "");
+
+            /*
+                Only the FIRST line of a quote box can
+                specify its background color.
+
+                Supported:
+                [#E9F3F7]
+                [#F9F2F5]
+            */
+
+            if (quoteLines.length === 0) {
+
+                const colorMatch = quoteText.match(
+                    /^\[(#E9F3F7|#F9F2F5)\]\s*(.*)$/i
+                );
+
+                if (colorMatch) {
+
+                    quoteColor = colorMatch[1].toUpperCase();
+
+                    quoteText = colorMatch[2];
+
+                }
+            }
+
+            quoteLines.push(quoteText);
+
+            continue;
+        }
+
+
+        /*
+            If we were inside a quote and this line
+            isn't a quote anymore, finish the quote.
+        */
+
+        finishQuote();
+
+
+        /* --------------------------------------------------
+           UNORDERED LIST
+        -------------------------------------------------- */
+
+        if (/^-\s+/.test(trimmed)) {
+
+            finishParagraph();
+
+            const item = trimmed.replace(/^-\s+/, "");
+
+            listItems.push(item);
+
+            continue;
+        }
+
+
+        /*
+            If we were inside a list and this line
+            isn't a list item anymore, finish it.
+        */
+
+        finishList();
+
+
+        /* --------------------------------------------------
+           NORMAL TEXT
+        -------------------------------------------------- */
+
+        normalParagraphs.push(trimmed);
+    }
+
+
+    /* --------------------------------------------------
+       FINISH REMAINING CONTENT
+    -------------------------------------------------- */
+
+    finishQuote();
+    finishList();
+    finishParagraph();
+
+
+    return result.trim();
+}
+
+
+/* --------------------------------------------------
+   LIVE PREVIEW
+-------------------------------------------------- */
+
+const input = document.getElementById("input");
+const preview = document.getElementById("preview");
+const output = document.getElementById("output");
+const copyButton = document.getElementById("copyButton");
+
+function update() {
+
+    const html = convertMarkdown(input.value);
+
+    output.textContent = html;
+    preview.innerHTML = html;
+}
+
+input.addEventListener("input", update);
+
+
+/* --------------------------------------------------
+   COPY BUTTON
+-------------------------------------------------- */
+
+copyButton.addEventListener("click", function() {
+
+    navigator.clipboard.writeText(output.textContent);
+
+    copyButton.textContent = "Copied!";
+
+    setTimeout(function() {
+        copyButton.textContent = "Copy HTML";
+    }, 1500);
+
+});
+
+
+/* Initial update */
+
+update();
+
+</script>
+
+</body>
+</html>
