@@ -186,7 +186,7 @@ function formatInline(text) {
         /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
         function(match, label, url) {
             return protect(
-                `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`
+                `<a href="${url}">${label}</a>`
             );
         }
     );
@@ -335,9 +335,12 @@ function convertMarkdown(markdown) {
             style = ` style="background-color:${quoteColor};"`;
         }
 
-        result += `<div class="p-box"${style}>\n`;
+        result += `<div class="p-box"${style}><p id="text16" class="text-component instance-16 style-1">
+                
+                
+                <span class="p">\n`;
         result += `${quote}\n`;
-        result += `</div>\n\n`;
+        result += `</span></p></div>\n\n`;
 
         quoteLines = [];
         quoteColor = null;
